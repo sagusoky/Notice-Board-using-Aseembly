@@ -21,3 +21,13 @@ A college Notice board made using x86 microcontroller assembly language programm
  microcontroller programming and interfacing in a practical, real-world
  scenario.</i>
 
+ <b> Use Case </b>
+ <br>
+<i> Real-time message display without manual input.</i>
+
+<b>Application</b>
+<br>
+<i>Useful in schools, offices, and public places.</i>
+
+<br>
+We have provided the Project Report, Flowcharts,Code,Implementation details and expained ppt in the repository.
