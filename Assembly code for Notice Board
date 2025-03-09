@@ -1,0 +1,196 @@
+Org 0000h
+ RS
+ E
+ Equ
+ Equ
+ P1.3
+ P1.2
+ ; R/W* is hardwired to 0V, therefore it is always in write mode
+ ;---------------------------------- Main------------------------------------
+Clr RS
+ ; RS=0- Instruction register is selected.
+ ; Stores instruction codes, e.g., clear
+ display...
+ ; Function set
+ ; Display on/off control
+ Call FuncSet
+ Call DispCon
+ ; Entry mode set (4-bit mode)
+ Call EntryMode
+ ; Send data
+ SetB RS
+ MovDPTR,#LUT1
+ Back:
+ Next:
+ Clr A
+ Movc A,@A+DPTR
+ Jz Next
+ Call SendChar
+ Inc DPTR
+ JmpBack
+ ; RS=1- Data register is selected.
+ ; Send data to data register to be displayed.
+ Call CursorPos ;Put cursor onto the next line
+ SetB RS
+ MovDPTR,#LUT2
+ Again:
+ EndHere:
+ Clr A
+ Jmp$
+ Movc A,@A+DPTR
+ Jz EndHere
+ Call SendChar
+ Inc DPTR
+ JmpAgain
+ ; RS=1- Data register is selected.
+ ; Send data to data register to be displayed.
+ ;--------------------------------- END--------------------------------------
+ ;-------------------------------- Subroutines--------------------------------
+;------------------------- Function set--------------------------------------
+ FuncSet:
+ Clr P1.7
+ Clr P1.6
+ ;
+ ;
+; bit 5=1
+ SetB P1.5
+ Clr P1.4
+ Call Pulse
+ Call Delay
+ Call Pulse
+ SetB P1.7
+ Clr P1.6
+ Clr P1.5
+ Clr P1.4
+ Call Pulse
+ Call Delay
+ Ret
+ ; (DB4)DL=0- puts LCD module into 4-bit mode
+ ; wait for BF to clear
+ ; P1.7=1 (N)- 2 lines
+ ;------------------------------------------------------------------------------
+ ;------------------------------- Display on/off control----------------------
+; The display is turned on, the cursor is turned on
+ DispCon:
+ Clr P1.7
+ ;
+ Clr P1.6
+ Clr P1.5
+ Clr P1.4
+ Call Pulse
+ SetB P1.7
+ SetB P1.6
+ SetB P1.5
+ SetB P1.4
+ Call Pulse
+ Call Delay
+ Ret
+ ;
+ ;
+ ; high nibble set (0H- hex)
+ ;
+ ; Sets entire display ON
+ ; Cursor ON
+ ; Cursor blinking ON
+ ; wait for BF to clear
+ ;--------------------------------------------------------------------------------
+ CursorPos:
+ Clr RS
+ '0'
+ '0'
+ '0'
+ SetB P1.7
+ SetB P1.6
+ Clr P1.5
+ Clr P1.4
+ Call Pulse
+ Clr P1.7
+ ; Sets the DDRAM address
+ ; Set address. Address starts here- '1'
+ ;
+ ;
+ ;
+ ; high nibble
+ClrP1.6 ;
+ '0'
+ ClrP1.5 ;
+ '0'
+ ClrP1.4 ;
+ '0'
+ ; lownibble
+ ;Thereforeaddressis1000000or40H
+ ;Ref:
+ http://web.alfredstate.edu/faculty/weimandn/lcd/lcd_addressing/lcd_addressing_index.html
+ ;Ref:
+ https://mil.ufl.edu/3744/docs/lcdmanual/commands.html
+ CallPulse
+ CallDelay ;waitforBFtoclear
+ Ret
+ ;-----------------------------Entrymodeset(4-bitmode)----------------------
+ ; Settoincrementtheaddressbyoneandcursorshiftedtotheright
+ EntryMode: ClrP1.7 ;P1.7=0
+ ClrP1.6 ;P1.6=0
+ ClrP1.5 ;P1.5=0
+ ClrP1.4 ;P1.4=0
+ CallPulse
+ Clr P1.7 ;P1.7='0'
+ SetBP1.6 ;P1.6='1'
+ SetBP1.5 ;P1.5='1'
+ Clr P1.4 ;P1.4='0'
+ CallPulse
+ CallDelay ;waitforBFtoclear
+ Ret
+ ;------------------------------------Pulse--------------------------------------
+ Pulse: SetBE ;P1.2isconnectedto'E'pinofLCDmodule
+ Clr E ;negativeedgeonE
+ Ret
+ ;--------------------------------------------------------------------------------
+;-------------------------------------SendChar----------------------------------
+ SendChar: MovC,ACC.7 ;
+ MovP1.7,C ;
+ MovC,ACC.6 ;
+ MovP1.6,C ;
+ MovC,ACC.5 ;
+ MovP1.5,C ;
+ MovC,ACC.4 ;
+ MovP1.4,C ;highnibble
+ ;Jmp$
+Call Pulse
+ MovC, ACC.3
+ MovP1.7, C
+ MovC, ACC.2
+ MovP1.6, C
+ MovC, ACC.1
+ MovP1.5, C
+ MovC, ACC.0
+ MovP1.4, C
+ Call Pulse
+ Call Delay
+ MovR1,#55h
+ Ret
+ ;
+ ;
+ ;
+ ;
+ ;------------------------------------- Delay------------------------------------
+ Delay:
+ ;
+ ;
+ ;
+ ; low nibble
+ ; wait for BF to clear
+ MovR0, #50
+ Djnz R0, $
+ Ret
+ ;--------------------------------------------------------------------------------
+ ;--------------------------------- End of subroutines------------------------------
+ ;------------------------------ Look-Up Table (LUT)--------------------------------
+ Org 0200h
+ LUT1:
+ DB'N', 'O', 'T', 'I', 'C', 'E', ' ', 'B', ‘O’, ‘A’, ‘R’, ‘D’, 0
+ LUT2:
+ DB'P', 'B', 'L', ' ', 'I', 'S', ' ', 'B', ‘E’,’S’,’T’, 0
+ ;----------------------------------------------------------------------------------
+Stop:
+ Jmp$
+ End
